@@ -36,7 +36,7 @@ Script to prepare a release. The script makes sure the current branch is the bas
 **Usage**
 
 ```sh
-# Set a version.
+# Set a version (valid semver without the 'v' prefix).
 ./scripts/bash/release.sh --version <version>
 
 # If there already is existing tagged versions, the following can be used.
