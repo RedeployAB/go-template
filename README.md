@@ -84,6 +84,11 @@ Two Dockerfiles are provided:
 
 * `ENTRYPOINT` needs to be updated to `ENTRYPOINT [ "/usr/bin/<binary-name>" ]`
 
+If `ca-certificates` is not needed by the project, the following lines can be deleted:
+
+* `RUN apk update && apk add --no-cache ca-certificates && update-ca-certificates` from the **First step**.
+* `COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/` from the **Second step**.
+
 
 ## Workflows
 
