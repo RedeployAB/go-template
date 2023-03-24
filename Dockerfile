@@ -27,10 +27,10 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 
-COPY ./build/${BIN} /usr/bin/${BIN}
+COPY ./build/${BIN} /${BIN}
 
 EXPOSE ${PORT}
 
 USER ${BIN}:${BIN}
 
-ENTRYPOINT [ "/usr/bin/" ]
+ENTRYPOINT [ "/" ]

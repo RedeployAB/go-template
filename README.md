@@ -82,7 +82,7 @@ Two Dockerfiles are provided:
 * `ARG BIN` needs to be updated `ARG BIN=<binary-name>` (if not provided during build).
 * `ARG PORT` needs to be updated to `ARG PORT=<port-number>` (if not provided during build).
 
-* `ENTRYPOINT` needs to be updated to `ENTRYPOINT [ "/usr/bin/<binary-name>" ]`.
+* `ENTRYPOINT` needs to be updated to `ENTRYPOINT [ "/<binary-name>" ]`.
 
 If `ca-certificates` is not needed by the project, the following lines can be deleted:
 
