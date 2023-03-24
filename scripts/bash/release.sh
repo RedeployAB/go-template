@@ -44,7 +44,7 @@ if [[ -z "$version" ]]; then
   version=$(git describe --abbrev=0 | sed -e "s/^v//g")
 fi
 
-if [[ ! $version =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
+if [[ ! $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "$version is not valid semver."
   exit 1
 fi
