@@ -68,21 +68,21 @@ export PRIVATE_REPO_SSH_KEY_BASE64=<base64-of-private-key-to-repository>
 
 Two Dockerfiles are provided:
 
-* `Dockerfile` - Needs the binary pre-build and located in `build/`.
+* `Dockerfile` - Needs the binary pre-built and located in `build/`.
 * `Dockerfile_build` - Builds the binary during the image build.
 
 **Note**: The Dockerfile(s) needs the following updated:
 
 **First step**
 
-* `ARG BIN` needs to be updated `ARG BIN=`<binary-name>` (if not provided during build)
+* `ARG BIN` needs to be updated `ARG BIN=<binary-name>` (if not provided during build).
 
 **Second step**
 
-* `ARG BIN` needs to be updated `ARG BIN=<binary-name>` (if not provided during build)
-* `ARG PORT` needs to be updated to `ARG PORT=<port-number>` (if not provided during build)
+* `ARG BIN` needs to be updated `ARG BIN=<binary-name>` (if not provided during build).
+* `ARG PORT` needs to be updated to `ARG PORT=<port-number>` (if not provided during build).
 
-* `ENTRYPOINT` needs to be updated to `ENTRYPOINT [ "/usr/bin/<binary-name>" ]`
+* `ENTRYPOINT` needs to be updated to `ENTRYPOINT [ "/usr/bin/<binary-name>" ]`.
 
 If `ca-certificates` is not needed by the project, the following lines can be deleted:
 
