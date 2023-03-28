@@ -2,8 +2,9 @@ on:
   workflow_call:
     inputs:
       go-version:
-        required: true
         type: string
+        required: false
+        default: '1.20'
 
 jobs:
   test:
@@ -19,8 +20,8 @@ jobs:
 
     - name: Download dependencies
       run: |
-        go get .
         go install golang.org/x/vuln/cmd/govulncheck@latest
+        go get .
 
     - name: Run tests
       run: go vet ./... && go test -v ./...
