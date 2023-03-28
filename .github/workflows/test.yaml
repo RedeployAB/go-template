@@ -19,7 +19,7 @@ jobs:
 
     - name: Download dependencies
       run: |
-        go get .
+        go install .
         go install golang.org/x/vuln/cmd/govulncheck@latest
 
     - name: Run tests
