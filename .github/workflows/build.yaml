@@ -21,5 +21,3 @@ on:
 jobs:
   test:
     uses: ./.github/workflows/test.yaml
-    with:
-      go-version: '1.20'
