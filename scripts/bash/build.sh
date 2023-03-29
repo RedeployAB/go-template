@@ -46,7 +46,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-GOOS=$os GOARCH=$arch go build \
+CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build \
   -o $bin_path \
   -ldflags="-s -w" \
   -trimpath main.go
