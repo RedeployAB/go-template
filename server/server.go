@@ -52,7 +52,7 @@ func (s server) Start() error {
 	return nil
 }
 
-// shutdown the server
+// shutdown the server.
 func (s server) shutdown() (os.Signal, error) {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
