@@ -77,15 +77,14 @@ func TestNew(t *testing.T) {
 
 func TestServer_Start(t *testing.T) {
 	t.Run("start server", func(t *testing.T) {
-		logs := []string{}
-		logger := mockLogger{
-			logs: &logs,
-		}
+		messages := []string{}
+		log := defaultLogger{testLogFunc(&messages)}
+
 		srv := &server{
 			httpServer: &http.Server{
 				Addr: "localhost:8080",
 			},
-			log: logger,
+			log: log,
 		}
 		go func() {
 			time.Sleep(time.Millisecond * 100)
@@ -94,11 +93,11 @@ func TestServer_Start(t *testing.T) {
 		srv.Start()
 
 		want := []string{
-			"Server started.;address;localhost:8080",
-			"Server shutdown.;reason;interrupt",
+			"message=Server started.; address=localhost:8080",
+			"message=Server shutdown.; reason=interrupt",
 		}
 
-		if diff := cmp.Diff(want, logs); diff != "" {
+		if diff := cmp.Diff(want, messages); diff != "" {
 			t.Errorf("Start() = unexpected result (-want +got):\n%s\n", diff)
 		}
 	})
@@ -106,10 +105,8 @@ func TestServer_Start(t *testing.T) {
 
 func TestServer_Start_Error(t *testing.T) {
 	t.Run("start server", func(t *testing.T) {
-		logs := []string{}
-		logger := mockLogger{
-			logs: &logs,
-		}
+		messages := []string{}
+		logger := defaultLogger{testLogFunc(&messages)}
 		srv := &server{
 			httpServer: &http.Server{
 				Addr: "localhost:8080",
