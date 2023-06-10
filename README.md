@@ -17,7 +17,7 @@ Go. It contains scripts, Dockerfile(s) and workflows.
 
 ## Module
 
-The module and it's imports needs to be updated.
+The module and its imports needs to be updated.
 
 1. Update `go.mod` with the correct module name.
 2. Update imports to the new module.
