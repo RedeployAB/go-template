@@ -2,6 +2,7 @@ package server
 
 import (
 	"log"
+	"strconv"
 	"strings"
 )
 
@@ -23,12 +24,21 @@ func (l defaultLogger) Info(msg string, keysAndValues ...any) {
 	b.WriteString("message=")
 	b.WriteString(msg)
 	for i, line := range keysAndValues {
+
+		var l string
+		switch v := line.(type) {
+		case string:
+			l = v
+		case int:
+			l = strconv.Itoa(v)
+		}
+
 		if i%2 == 0 {
 			b.WriteString("; ")
-			b.WriteString(line.(string))
+			b.WriteString(l)
 			b.WriteString("=")
 		} else {
-			b.WriteString(line.(string))
+			b.WriteString(l)
 		}
 	}
 	l.out(b.String())
@@ -38,8 +48,8 @@ func (l defaultLogger) Info(msg string, keysAndValues ...any) {
 func (l defaultLogger) Error(err error, msg string, keysAndValues ...any) {
 	var b strings.Builder
 	b.WriteString("message=")
-	b.WriteString(msg)
-	b.WriteString(" error=")
+	b.WriteString(msg + "; ")
+	b.WriteString("error=")
 	b.WriteString(err.Error())
 	for i, line := range keysAndValues {
 		if i%2 == 0 {

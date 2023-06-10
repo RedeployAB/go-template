@@ -1,8 +1,8 @@
 package server
 
 import (
+	"errors"
 	"log"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -21,45 +21,38 @@ func TestNewDefaultLogger(t *testing.T) {
 }
 
 func TestDefaultLogger_Info(t *testing.T) {
-	msg := ""
-	msgPtr := &msg
-	l := defaultLogger{out: testLogFunc(msgPtr)}
+	t.Run("info", func(t *testing.T) {
+		messages := []string{}
+		log := defaultLogger{out: testLogFunc(&messages)}
 
-	l.Info("message", "key", "value")
-	got := msg
+		log.Info("message", "key", "value")
+		got := messages[0]
 
-	want := "message=message; key=value"
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("Info(%s) = unexpected result (-want +got):\n%s\n", want, diff)
-	}
-
+		want := "message=message; key=value"
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("Info(%s) = unexpected result (-want +got):\n%s\n", want, diff)
+		}
+	})
 }
 
-func testLogFunc(msg *string) func(v ...any) {
+func TestDefaultLogger_Error(t *testing.T) {
+	t.Run("error", func(t *testing.T) {
+		err := errors.New("error")
+		messages := []string{}
+		log := defaultLogger{out: testLogFunc(&messages)}
+
+		log.Error(err, "message", "key", "value")
+		got := messages[0]
+
+		want := "message=message; error=error; key=value"
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("Error(%s) = unexpected result (-want +got):\n%s\n", want, diff)
+		}
+	})
+}
+
+func testLogFunc(messages *[]string) func(v ...any) {
 	return func(v ...any) {
-		*msg = v[0].(string)
+		*messages = append(*messages, v[0].(string))
 	}
-}
-
-type mockLogger struct {
-	logs *[]string
-}
-
-func (l mockLogger) Info(msg string, keysAndValues ...any) {
-	m := make([]string, len(keysAndValues)+1)
-	m[0] = msg
-	for i := 1; i < len(m); i++ {
-		m[i] = keysAndValues[i-1].(string)
-	}
-	*l.logs = append(*l.logs, strings.Join(m, ";"))
-}
-
-func (l mockLogger) Error(err error, msg string, keysAndValues ...any) {
-	m := make([]string, len(keysAndValues)+2)
-	m[0] = err.Error()
-	m[1] = msg
-	for i := 2; i < len(m); i++ {
-		m[i] = keysAndValues[i-2].(string)
-	}
-	*l.logs = append(*l.logs, strings.Join(m, ";"))
 }

@@ -52,12 +52,10 @@ func TestNew(t *testing.T) {
 
 func TestServer_Start(t *testing.T) {
 	t.Run("start server", func(t *testing.T) {
-		logs := []string{}
-		logger := mockLogger{
-			logs: &logs,
-		}
+		messages := []string{}
+		log := defaultLogger{out: testLogFunc(&messages)}
 		srv := &server{
-			log: logger,
+			log: log,
 		}
 		go func() {
 			time.Sleep(time.Millisecond * 100)
@@ -66,10 +64,10 @@ func TestServer_Start(t *testing.T) {
 		srv.Start()
 
 		want := []string{
-			"Server shutdown.;reason;interrupt",
+			"message=Server shutdown.; reason=interrupt",
 		}
 
-		if diff := cmp.Diff(want, logs); diff != "" {
+		if diff := cmp.Diff(want, messages); diff != "" {
 			t.Errorf("Start() = unexpected result (-want +got):\n%s\n", diff)
 		}
 	})
