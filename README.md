@@ -5,10 +5,31 @@
 This repository is a template to make use of when creating new projects in
 Go. It contains scripts, Dockerfile(s) and workflows.
 
+* [Module](#module)
+* [Server](#Server)
+  * [Logging](#logging)
 * [Scripts](#scripts)
 * [Dockerfiles](#dockerfiles)
 * [Workflows](#workflows)
 
+## Module
+
+The module and its imports needs to be updated.
+
+1. Update `go.mod` with the correct module name.
+2. Update imports to the new module.
+
+## Server
+
+The template contains a simple generic foundation for creating a server that can be used as a starting point. The `main.go` has the bare minimum to start, if need be, update `main.go` with additional setup code from a `config` package or other means of configuration.
+
+The server implementation, startup and shutdown logic must be implemented.
+
+### Logging
+
+The `server` makes use of the interface `logger` which has the methods `Info(msg string, keysAndValues ...any)` and `Error(err error, msg string, keysAndValues ...any)`. This interface adheres to logging API provided by [`logr`](https://github.com/go-logr/logr). Various implementations can be found in its README.
+
+A basic implementation is provided with the server through the `defaultLogger` which can be created by calling `NewDefaultLogger()`. It is recommended to make use of a more advanced logger implementation.
 
 ## Scripts
 
