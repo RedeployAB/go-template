@@ -5,10 +5,66 @@
 This repository is a template to make use of when creating new projects in
 Go. It contains scripts, Dockerfile(s) and workflows.
 
+* [Module](#module)
+* [HTTP server](#http-server)
+  * [Handlers](#handlers)
+  * [Routes](#routes)
+  * [Logging](#logging)
 * [Scripts](#scripts)
 * [Dockerfiles](#dockerfiles)
 * [Workflows](#workflows)
 
+
+## Module
+
+The module and its imports needs to be updated.
+
+1. Update `go.mod` with the correct module name.
+2. Update imports to the new module.
+
+## HTTP server
+
+The template contains a simple HTTP server that can be used as a starting point. The `main.go` has the bare minimum to start, iff need be, update `main.go` with additional setup code from a `config` package or other means of configuration.
+
+### Handlers
+
+Handlers should be added as methods on the `server` struct in `server/server.go`, preferably in a separate file (called `server/handlers.go` as an example).
+
+### Routes
+
+Routes should be added in the `server` method `routes` in `server/routes.go`. Exchanging the router for another implemenation is straight forward.
+It can be done by updating the `server` struct field `router`, the construction function `New` and the `Options` struct.
+Recommended implementation for more advanced cases is [chi](https://github.com/go-chi/chi).
+
+### Logging
+
+The `server` makes use of the interface `logger` which has the methods `Info(msg string, keysAndValues ...any)` and `Error(err error, msg string, keysAndValues ...any)`. This interface adheres to logging API provided by [`logr`](https://github.com/go-logr/logr). Various implementations can be found in its README.
+
+A basic implementation is provided with the server through the `defaultLogger` which can be created by calling `NewDefaultLogger()`. It is recommended to make use of a more advanced logger implementation.
+
+A basic request logger middleware is made available in the file `server/middleware_logger.go`. It can be used as follows:
+
+**Standard library**
+
+```go
+s.router.Handle("/", newRequestLogger(s.handler()))
+
+func (s server) newRequestLogger(next http.Handler) http.Handler {
+  return requestLogger(s.log, next)
+}
+```
+
+**`chi`**
+
+```go
+s.router.Use(newRequestLogger)
+
+s.router.Handle("/", s.handler())
+
+func (s server) newRequestLogger(next http.Handler) http.Handler {
+  return requestLogger(s.log, next)
+}
+```
 
 ## Scripts
 
