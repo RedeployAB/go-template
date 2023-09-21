@@ -7,12 +7,6 @@ import (
 	"time"
 )
 
-// logger is the interface that wraps around methods Info and Error.
-type logger interface {
-	Info(msg string, keysAndValues ...any)
-	Error(err error, msg string, keysAndValues ...any)
-}
-
 // server ...
 type server struct {
 	log logger
@@ -37,7 +31,7 @@ func (s server) Start() error {
 
 	select {
 	case err := <-errCh:
-		s.log.Error(err, "Failed to start server.")
+		s.log.Error("Failed to start server.")
 		return err
 	case <-time.After(10 * time.Millisecond):
 		// Code for when server start is finsihed.
@@ -45,7 +39,7 @@ func (s server) Start() error {
 
 	sig, err := s.shutdown()
 	if err != nil {
-		s.log.Error(err, "Failed to shutdown server gracefully.")
+		s.log.Error("Failed to shutdown server gracefully.")
 		return err
 	}
 	s.log.Info("Server shutdown.", "reason", sig.String())
