@@ -7,16 +7,18 @@ import (
 	"time"
 )
 
-// logger is the interface that wraps around methods Info and Error.
-type logger interface {
-	Info(msg string, keysAndValues ...any)
-	Error(err error, msg string, keysAndValues ...any)
-}
-
 // service ...
 type service struct {
 	log logger
 }
+
+// Options holds the configuration for the service.
+type Options struct {
+	Log logger
+}
+
+// Option is a function that configures the service.
+type Option func(*service)
 
 // New returns a new service.
 func New(options ...Option) *service {
@@ -24,7 +26,12 @@ func New(options ...Option) *service {
 	for _, option := range options {
 		option(s)
 	}
-	return s.defaults()
+
+	if s.log == nil {
+		s.log = NewDefaultLogger()
+	}
+
+	return s
 }
 
 // Start the service.
@@ -37,7 +44,7 @@ func (s service) Start() error {
 
 	select {
 	case err := <-errCh:
-		s.log.Error(err, "Failed to start service.")
+		s.log.Error("Failed to start service.")
 		return err
 	case <-time.After(10 * time.Millisecond):
 		// Code for when service start is finsihed.
@@ -45,7 +52,7 @@ func (s service) Start() error {
 
 	sig, err := s.shutdown()
 	if err != nil {
-		s.log.Error(err, "Failed to shutdown service gracefully.")
+		s.log.Error("Failed to shutdown service gracefully.")
 		return err
 	}
 	s.log.Info("Service shutdown.", "reason", sig.String())
@@ -63,11 +70,10 @@ func (s service) shutdown() (os.Signal, error) {
 	return sig, nil
 }
 
-// defaults sets the default values for the service if they are not set.
-func (s *service) defaults() *service {
-	// Service default setup here.
-	if s.log == nil {
-		s.log = NewDefaultLogger()
+// WithOptions configures the service with the given Options.
+func WithOptions(options Options) Option {
+	return func(s *service) {
+		// Setup on all options from the option struct here.
+		s.log = options.Log
 	}
-	return s
 }
