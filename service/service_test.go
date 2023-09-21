@@ -1,7 +1,7 @@
 package service
 
 import (
-	"log"
+	"log/slog"
 	"syscall"
 	"testing"
 	"time"
@@ -20,7 +20,7 @@ func TestNew(t *testing.T) {
 			name:  "default",
 			input: []Option{},
 			want: &service{
-				log: defaultLogger{out: log.Println},
+				log: NewDefaultLogger(),
 			},
 		},
 		{
@@ -31,7 +31,7 @@ func TestNew(t *testing.T) {
 				}),
 			},
 			want: &service{
-				log: defaultLogger{out: log.Println},
+				log: NewDefaultLogger(),
 			},
 		},
 	}
@@ -43,7 +43,7 @@ func TestNew(t *testing.T) {
 				t.Errorf("New(%v) = nil; want %v", test.input, test.want)
 			}
 
-			if diff := cmp.Diff(test.want, got, cmp.AllowUnexported(service{}), cmpopts.IgnoreUnexported(defaultLogger{})); diff != "" {
+			if diff := cmp.Diff(test.want, got, cmp.AllowUnexported(service{}), cmpopts.IgnoreUnexported(slog.Logger{})); diff != "" {
 				t.Errorf("New(%v) = unexpected result (-want +got):\n%s\n", test.input, diff)
 			}
 		})
@@ -52,10 +52,11 @@ func TestNew(t *testing.T) {
 
 func TestService_Start(t *testing.T) {
 	t.Run("start service", func(t *testing.T) {
-		messages := []string{}
-		log := defaultLogger{out: testLogFunc(&messages)}
+		logs := []string{}
 		srv := &service{
-			log: log,
+			log: &mockLogger{
+				logs: &logs,
+			},
 		}
 		go func() {
 			time.Sleep(time.Millisecond * 100)
@@ -64,15 +65,33 @@ func TestService_Start(t *testing.T) {
 		srv.Start()
 
 		want := []string{
-			"message=Service shutdown.; reason=interrupt",
+			"Service shutdown.",
+			"reason",
+			"interrupt",
 		}
 
-		if diff := cmp.Diff(want, messages); diff != "" {
+		if diff := cmp.Diff(want, logs); diff != "" {
 			t.Errorf("Start() = unexpected result (-want +got):\n%s\n", diff)
 		}
 	})
 }
 
-func TestService_Start_Error(t *testing.T) {
+type mockLogger struct {
+	logs *[]string
+}
 
+func (l *mockLogger) Info(msg string, args ...any) {
+	messages := []string{msg}
+	for _, v := range args {
+		messages = append(messages, v.(string))
+	}
+	*l.logs = append(*l.logs, messages...)
+}
+
+func (l *mockLogger) Error(msg string, args ...any) {
+	messages := []string{msg}
+	for _, v := range args {
+		messages = append(messages, v.(string))
+	}
+	*l.logs = append(*l.logs, messages...)
 }
