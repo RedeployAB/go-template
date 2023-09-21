@@ -18,12 +18,6 @@ const (
 	defaultIdleTimeout  = 30 * time.Second
 )
 
-// logger is the interface that wraps around methods Info and Error.
-type logger interface {
-	Info(msg string, keysAndValues ...any)
-	Error(err error, msg string, keysAndValues ...any)
-}
-
 // server holds an http.Server, a router and it's configured options.
 type server struct {
 	httpServer *http.Server
@@ -31,15 +25,45 @@ type server struct {
 	log        logger
 }
 
+// Options holds the configuration for the server.
+type Options struct {
+	Router       *http.ServeMux
+	Log          logger
+	Host         string
+	Port         string
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	IdleTimeout  time.Duration
+}
+
+// Option is a function that configures the server.
+type Option func(*server)
+
 // New returns a new server.
 func New(options ...Option) *server {
 	s := &server{
-		httpServer: &http.Server{},
+		httpServer: &http.Server{
+			ReadTimeout:  defaultReadTimeout,
+			WriteTimeout: defaultWriteTimeout,
+			IdleTimeout:  defaultIdleTimeout,
+		},
 	}
 	for _, option := range options {
 		option(s)
 	}
-	return s.defaults()
+
+	if s.router == nil {
+		s.router = http.NewServeMux()
+		s.httpServer.Handler = s.router
+	}
+	if s.log == nil {
+		s.log = NewDefaultLogger()
+	}
+	if len(s.httpServer.Addr) == 0 {
+		s.httpServer.Addr = defaultHost + ":" + defaultPort
+	}
+
+	return s
 }
 
 // Start the server.
@@ -56,7 +80,7 @@ func (s server) Start() error {
 
 	select {
 	case err := <-errCh:
-		s.log.Error(err, "Failed to start server.")
+		s.log.Error("Failed to start server.")
 		return err
 	case <-time.After(10 * time.Millisecond):
 		s.log.Info("Server started.", "address", s.httpServer.Addr)
@@ -64,7 +88,7 @@ func (s server) Start() error {
 
 	sig, err := s.shutdown()
 	if err != nil {
-		s.log.Error(err, "Failed to shutdown server gracefully.")
+		s.log.Error("Failed to shutdown server gracefully.")
 		return err
 	}
 	s.log.Info("Server shutdown.", "reason", sig.String())
@@ -87,27 +111,16 @@ func (s server) shutdown() (os.Signal, error) {
 	return sig, nil
 }
 
-// defaults sets the default values for the server if they are not set.
-func (s *server) defaults() *server {
-	if s.router == nil {
-		s.router = http.NewServeMux()
-		s.httpServer.Handler = s.router
-	}
-	if s.log == nil {
-		s.log = NewDefaultLogger()
-	}
-	if len(s.httpServer.Addr) == 0 {
-		s.httpServer.Addr = defaultHost + ":" + defaultPort
-	}
-	if s.httpServer.ReadTimeout == 0 {
-		s.httpServer.ReadTimeout = defaultReadTimeout
-	}
-	if s.httpServer.WriteTimeout == 0 {
-		s.httpServer.WriteTimeout = defaultWriteTimeout
-	}
-	if s.httpServer.IdleTimeout == 0 {
-		s.httpServer.IdleTimeout = defaultIdleTimeout
-	}
+// WithOptions configures the server with the given Options.
+func WithOptions(options Options) Option {
+	return func(s *server) {
+		s.router = options.Router
+		s.log = options.Log
 
-	return s
+		s.httpServer.Handler = options.Router
+		s.httpServer.Addr = options.Host + ":" + options.Port
+		s.httpServer.ReadTimeout = options.ReadTimeout
+		s.httpServer.WriteTimeout = options.WriteTimeout
+		s.httpServer.IdleTimeout = options.IdleTimeout
+	}
 }
