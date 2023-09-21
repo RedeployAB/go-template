@@ -52,7 +52,9 @@ func TestRequestLogger(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			logs := []string{}
-			log := &mockLogger{logs: &logs}
+			log := &mockLogger{
+				logs: &logs,
+			}
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if test.input.status != 0 {
