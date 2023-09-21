@@ -54,7 +54,9 @@ func TestServer_Start(t *testing.T) {
 	t.Run("start server", func(t *testing.T) {
 		logs := []string{}
 		srv := &server{
-			log: &mockLogger{logs: &logs},
+			log: &mockLogger{
+				logs: &logs,
+			},
 		}
 		go func() {
 			time.Sleep(time.Millisecond * 100)
