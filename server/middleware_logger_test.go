@@ -30,7 +30,7 @@ func TestRequestLogger(t *testing.T) {
 					return req
 				},
 			},
-			want: []string{"message=Request received.; status=200; path=/; method=GET; remoteIp=192.168.1.1"},
+			want: []string{"Request received.", "status", "200", "path", "/", "method", "GET", "remoteIp", "192.168.1.1"},
 		},
 		{
 			name: "log requests with status OK (no status)",
@@ -45,14 +45,14 @@ func TestRequestLogger(t *testing.T) {
 					return req
 				},
 			},
-			want: []string{"message=Request received.; status=200; path=/; method=GET; remoteIp=192.168.1.1"},
+			want: []string{"Request received.", "status", "200", "path", "/", "method", "GET", "remoteIp", "192.168.1.1"},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			messages := []string{}
-			log := defaultLogger{out: testLogFunc(&messages)}
+			logs := []string{}
+			log := &mockLogger{logs: &logs}
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if test.input.status != 0 {
@@ -65,7 +65,7 @@ func TestRequestLogger(t *testing.T) {
 			req := test.input.req()
 			requestLogger(log, handler).ServeHTTP(rr, req)
 
-			if diff := cmp.Diff(test.want, messages); diff != "" {
+			if diff := cmp.Diff(test.want, logs); diff != "" {
 				t.Errorf("requestLogger() = unexpected result, (-want, +got):\n%s\n", diff)
 			}
 		})

@@ -3,8 +3,9 @@ package server
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
+	"strconv"
 	"syscall"
 	"testing"
 	"time"
@@ -31,7 +32,7 @@ func TestNew(t *testing.T) {
 					IdleTimeout:  defaultIdleTimeout,
 				},
 				router: &http.ServeMux{},
-				log:    defaultLogger{out: log.Println},
+				log:    NewDefaultLogger(),
 			},
 		},
 		{
@@ -56,7 +57,7 @@ func TestNew(t *testing.T) {
 					IdleTimeout:  15 * time.Second,
 				},
 				router: &http.ServeMux{},
-				log:    defaultLogger{out: log.Println},
+				log:    NewDefaultLogger(),
 			},
 		},
 	}
@@ -68,7 +69,7 @@ func TestNew(t *testing.T) {
 				t.Errorf("New(%v) = nil; want %v", test.input, test.want)
 			}
 
-			if diff := cmp.Diff(test.want, got, cmp.AllowUnexported(server{}), cmpopts.IgnoreUnexported(http.Server{}, http.ServeMux{}, defaultLogger{})); diff != "" {
+			if diff := cmp.Diff(test.want, got, cmp.AllowUnexported(server{}), cmpopts.IgnoreUnexported(http.Server{}, http.ServeMux{}, slog.Logger{})); diff != "" {
 				t.Errorf("New(%v) = unexpected result (-want +got):\n%s\n", test.input, diff)
 			}
 		})
@@ -77,14 +78,14 @@ func TestNew(t *testing.T) {
 
 func TestServer_Start(t *testing.T) {
 	t.Run("start server", func(t *testing.T) {
-		messages := []string{}
-		log := defaultLogger{testLogFunc(&messages)}
-
+		logs := []string{}
 		srv := &server{
 			httpServer: &http.Server{
 				Addr: "localhost:8080",
 			},
-			log: log,
+			log: &mockLogger{
+				logs: &logs,
+			},
 		}
 		go func() {
 			time.Sleep(time.Millisecond * 100)
@@ -93,11 +94,15 @@ func TestServer_Start(t *testing.T) {
 		srv.Start()
 
 		want := []string{
-			"message=Server started.; address=localhost:8080",
-			"message=Server shutdown.; reason=interrupt",
+			"Server started.",
+			"address",
+			"localhost:8080",
+			"Server shutdown.",
+			"reason",
+			"interrupt",
 		}
 
-		if diff := cmp.Diff(want, messages); diff != "" {
+		if diff := cmp.Diff(want, logs); diff != "" {
 			t.Errorf("Start() = unexpected result (-want +got):\n%s\n", diff)
 		}
 	})
@@ -105,13 +110,14 @@ func TestServer_Start(t *testing.T) {
 
 func TestServer_Start_Error(t *testing.T) {
 	t.Run("start server", func(t *testing.T) {
-		messages := []string{}
-		logger := defaultLogger{testLogFunc(&messages)}
+		logs := []string{}
 		srv := &server{
 			httpServer: &http.Server{
 				Addr: "localhost:8080",
 			},
-			log: logger,
+			log: &mockLogger{
+				logs: &logs,
+			},
 		}
 
 		httpServer := &http.Server{
@@ -137,4 +143,38 @@ func TestServer_Start_Error(t *testing.T) {
 			t.Errorf("Start() = unexpected result (-want +got):\n%s\n", diff)
 		}
 	})
+}
+
+type mockLogger struct {
+	logs *[]string
+}
+
+func (l *mockLogger) Info(msg string, args ...any) {
+	messages := []string{msg}
+	for _, v := range args {
+		var val string
+		switch v := v.(type) {
+		case string:
+			val = v
+		case int:
+			val = strconv.Itoa(v)
+		}
+		messages = append(messages, val)
+	}
+	*l.logs = append(*l.logs, messages...)
+}
+
+func (l *mockLogger) Error(msg string, args ...any) {
+	messages := []string{msg}
+	for _, v := range args {
+		var val string
+		switch v := v.(type) {
+		case string:
+			val = v
+		case int:
+			val = strconv.Itoa(v)
+		}
+		messages = append(messages, val)
+	}
+	*l.logs = append(*l.logs, messages...)
 }
