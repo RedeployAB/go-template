@@ -1,0 +1,37 @@
+name: Test and vulnerability scan
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        type: string
+        required: false
+        default: '1.20'
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ inputs.go-version }}
+
+    - name: Download dependencies
+      run: |
+        go get .
+        go install golang.org/x/vuln/cmd/govulncheck@latest
+
+    - name: Run tests
+      run: go vet ./... && go test -v ./...
+
+    - name: Run vulnerability scan
+      run: |
+        govulncheck ./...
+        if [ $? -eq 3 ]; then
+          echo "::warning::Vulnerability found"
+          exit 0
+        fi
+      shell: bash {0}

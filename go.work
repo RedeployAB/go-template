@@ -1,0 +1,8 @@
+go 1.21.1
+
+use (
+	./templates/base
+	./templates/http-server
+	./templates/server
+	./templates/service
+)
