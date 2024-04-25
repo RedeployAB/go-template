@@ -121,7 +121,7 @@ func WithOptions(options Options) Option {
 	return func(s *server) {
 		if options.Router != nil {
 			s.router = options.Router
-			s.httpServer.Handler = options.Router
+			s.httpServer.Handler = s.router
 		}
 		if options.Logger != nil {
 			s.log = options.Logger
