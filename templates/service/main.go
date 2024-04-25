@@ -5,5 +5,13 @@ import (
 )
 
 func main() {
-	service.New().Start()
+	log := service.NewDefaultLogger()
+
+	svc := service.New(service.WithOptions(service.Options{
+		Logger: log,
+	}))
+
+	if err := svc.Start(); err != nil {
+		log.Error("Service error.", "error", err)
+	}
 }

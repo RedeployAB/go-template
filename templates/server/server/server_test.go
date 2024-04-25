@@ -2,6 +2,7 @@ package server
 
 import (
 	"log/slog"
+	"os"
 	"syscall"
 	"testing"
 	"time"
@@ -27,7 +28,7 @@ func TestNew(t *testing.T) {
 			name: "with options",
 			input: []Option{
 				WithOptions(Options{
-					Log: NewDefaultLogger(),
+					Logger: NewDefaultLogger(),
 				}),
 			},
 			want: &server{
@@ -43,7 +44,7 @@ func TestNew(t *testing.T) {
 				t.Errorf("New(%v) = nil; want %v", test.input, test.want)
 			}
 
-			if diff := cmp.Diff(test.want, got, cmp.AllowUnexported(server{}), cmpopts.IgnoreUnexported(slog.Logger{})); diff != "" {
+			if diff := cmp.Diff(test.want, got, cmp.AllowUnexported(server{}), cmpopts.IgnoreUnexported(slog.Logger{}), cmpopts.IgnoreFields(server{}, "stopCh", "errCh")); diff != "" {
 				t.Errorf("New(%v) = unexpected result (-want +got):\n%s\n", test.input, diff)
 			}
 		})
@@ -57,6 +58,8 @@ func TestServer_Start(t *testing.T) {
 			log: &mockLogger{
 				logs: &logs,
 			},
+			stopCh: make(chan os.Signal),
+			errCh:  make(chan error),
 		}
 		go func() {
 			time.Sleep(time.Millisecond * 100)
@@ -65,7 +68,8 @@ func TestServer_Start(t *testing.T) {
 		srv.Start()
 
 		want := []string{
-			"Server shutdown.",
+			"Server started.",
+			"Server stopped.",
 			"reason",
 			"interrupt",
 		}

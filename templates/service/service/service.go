@@ -4,17 +4,18 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 // service ...
 type service struct {
-	log logger
+	log    logger
+	stopCh chan os.Signal
+	errCh  chan error
 }
 
 // Options holds the configuration for the service.
 type Options struct {
-	Log logger
+	Logger logger
 }
 
 // Option is a function that configures the service.
@@ -22,7 +23,10 @@ type Option func(*service)
 
 // New returns a new service.
 func New(options ...Option) *service {
-	s := &service{}
+	s := &service{
+		stopCh: make(chan os.Signal),
+		errCh:  make(chan error),
+	}
 	for _, option := range options {
 		option(s)
 	}
@@ -36,44 +40,45 @@ func New(options ...Option) *service {
 
 // Start the service.
 func (s service) Start() error {
-	errCh := make(chan error, 1)
 	go func() {
 		// Add service startup code here.
-		// Send errors to errCh.
+		// Send errors to s.errCh.
 	}()
 
-	select {
-	case err := <-errCh:
-		s.log.Error("Failed to start service.")
-		return err
-	case <-time.After(10 * time.Millisecond):
-		// Code for when service start is finsihed.
-	}
+	go func() {
+		s.stop()
+	}()
 
-	sig, err := s.shutdown()
-	if err != nil {
-		s.log.Error("Failed to shutdown service gracefully.")
-		return err
+	s.log.Info("Service started.")
+	for {
+		select {
+		case err := <-s.errCh:
+			close(s.errCh)
+			return err
+		case sig := <-s.stopCh:
+			s.log.Info("Service stopped.", "reason", sig.String())
+			close(s.stopCh)
+			return nil
+		}
 	}
-	s.log.Info("Service shutdown.", "reason", sig.String())
-	return nil
 }
 
-// shutdown the service.
-func (s service) shutdown() (os.Signal, error) {
+// stop the service.
+func (s service) stop() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-stop
 
 	// Add service shutdown logic here.
 
-	return sig, nil
+	s.stopCh <- sig
 }
 
 // WithOptions configures the service with the given Options.
 func WithOptions(options Options) Option {
 	return func(s *service) {
-		// Setup on all options from the option struct here.
-		s.log = options.Log
+		if options.Logger != nil {
+			s.log = options.Logger
+		}
 	}
 }

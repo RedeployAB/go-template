@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 )
@@ -23,14 +24,16 @@ type server struct {
 	httpServer *http.Server
 	router     *http.ServeMux
 	log        logger
+	stopCh     chan os.Signal
+	errCh      chan error
 }
 
 // Options holds the configuration for the server.
 type Options struct {
 	Router       *http.ServeMux
-	Log          logger
+	Logger       logger
 	Host         string
-	Port         string
+	Port         int
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 	IdleTimeout  time.Duration
@@ -47,6 +50,8 @@ func New(options ...Option) *server {
 			WriteTimeout: defaultWriteTimeout,
 			IdleTimeout:  defaultIdleTimeout,
 		},
+		stopCh: make(chan os.Signal),
+		errCh:  make(chan error),
 	}
 	for _, option := range options {
 		option(s)
@@ -70,33 +75,32 @@ func New(options ...Option) *server {
 func (s server) Start() error {
 	s.routes()
 
-	errCh := make(chan error, 1)
 	go func() {
 		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			errCh <- err
-			return
+			s.errCh <- err
 		}
 	}()
 
-	select {
-	case err := <-errCh:
-		s.log.Error("Failed to start server.")
-		return err
-	case <-time.After(10 * time.Millisecond):
-		s.log.Info("Server started.", "address", s.httpServer.Addr)
-	}
+	go func() {
+		s.stop()
+	}()
 
-	sig, err := s.shutdown()
-	if err != nil {
-		s.log.Error("Failed to shutdown server gracefully.")
-		return err
+	s.log.Info("Server started.", "address", s.httpServer.Addr)
+	for {
+		select {
+		case err := <-s.errCh:
+			close(s.errCh)
+			return err
+		case sig := <-s.stopCh:
+			s.log.Info("Server stopped.", "reason", sig.String())
+			close(s.stopCh)
+			return nil
+		}
 	}
-	s.log.Info("Server shutdown.", "reason", sig.String())
-	return nil
 }
 
-// shutdown the server.
-func (s server) shutdown() (os.Signal, error) {
+// stop the server.
+func (s server) stop() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-stop
@@ -106,21 +110,33 @@ func (s server) shutdown() (os.Signal, error) {
 
 	s.httpServer.SetKeepAlivesEnabled(false)
 	if err := s.httpServer.Shutdown(ctx); err != nil {
-		return nil, err
+		s.errCh <- err
 	}
-	return sig, nil
+
+	s.stopCh <- sig
 }
 
 // WithOptions configures the server with the given Options.
 func WithOptions(options Options) Option {
 	return func(s *server) {
-		s.router = options.Router
-		s.log = options.Log
-
-		s.httpServer.Handler = options.Router
-		s.httpServer.Addr = options.Host + ":" + options.Port
-		s.httpServer.ReadTimeout = options.ReadTimeout
-		s.httpServer.WriteTimeout = options.WriteTimeout
-		s.httpServer.IdleTimeout = options.IdleTimeout
+		if options.Router != nil {
+			s.router = options.Router
+			s.httpServer.Handler = s.router
+		}
+		if options.Logger != nil {
+			s.log = options.Logger
+		}
+		if len(options.Host) > 0 || options.Port > 0 {
+			s.httpServer.Addr = options.Host + ":" + strconv.Itoa(options.Port)
+		}
+		if options.ReadTimeout > 0 {
+			s.httpServer.ReadTimeout = options.ReadTimeout
+		}
+		if options.WriteTimeout > 0 {
+			s.httpServer.WriteTimeout = options.WriteTimeout
+		}
+		if options.IdleTimeout > 0 {
+			s.httpServer.IdleTimeout = options.IdleTimeout
+		}
 	}
 }
