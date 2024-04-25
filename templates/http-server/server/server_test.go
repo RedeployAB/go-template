@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"os"
 	"strconv"
 	"syscall"
 	"testing"
@@ -40,9 +41,9 @@ func TestNew(t *testing.T) {
 			input: []Option{
 				WithOptions(Options{
 					Router:       http.NewServeMux(),
-					Log:          NewDefaultLogger(),
+					Logger:       NewDefaultLogger(),
 					Host:         "localhost",
-					Port:         "8081",
+					Port:         8081,
 					ReadTimeout:  10 * time.Second,
 					WriteTimeout: 10 * time.Second,
 					IdleTimeout:  15 * time.Second,
@@ -69,7 +70,7 @@ func TestNew(t *testing.T) {
 				t.Errorf("New(%v) = nil; want %v", test.input, test.want)
 			}
 
-			if diff := cmp.Diff(test.want, got, cmp.AllowUnexported(server{}), cmpopts.IgnoreUnexported(http.Server{}, http.ServeMux{}, slog.Logger{})); diff != "" {
+			if diff := cmp.Diff(test.want, got, cmp.AllowUnexported(server{}), cmpopts.IgnoreUnexported(http.Server{}, http.ServeMux{}, slog.Logger{}), cmpopts.IgnoreFields(server{}, "stopCh", "errCh")); diff != "" {
 				t.Errorf("New(%v) = unexpected result (-want +got):\n%s\n", test.input, diff)
 			}
 		})
@@ -86,6 +87,8 @@ func TestServer_Start(t *testing.T) {
 			log: &mockLogger{
 				logs: &logs,
 			},
+			stopCh: make(chan os.Signal),
+			errCh:  make(chan error),
 		}
 		go func() {
 			time.Sleep(time.Millisecond * 100)
@@ -97,7 +100,7 @@ func TestServer_Start(t *testing.T) {
 			"Server started.",
 			"address",
 			"localhost:8080",
-			"Server shutdown.",
+			"Server stopped.",
 			"reason",
 			"interrupt",
 		}
@@ -118,6 +121,8 @@ func TestServer_Start_Error(t *testing.T) {
 			log: &mockLogger{
 				logs: &logs,
 			},
+			stopCh: make(chan os.Signal),
+			errCh:  make(chan error),
 		}
 
 		httpServer := &http.Server{
