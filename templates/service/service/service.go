@@ -42,7 +42,7 @@ func New(options ...Option) *service {
 func (s service) Start() error {
 	go func() {
 		// Add service startup code here.
-		// Send errors to errCh.
+		// Send errors to s.errCh.
 	}()
 
 	go func() {
