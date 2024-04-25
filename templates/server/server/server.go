@@ -4,17 +4,18 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 // server ...
 type server struct {
-	log logger
+	log    logger
+	stopCh chan os.Signal
+	errCh  chan error
 }
 
 // Options holds the configuration for the server.
 type Options struct {
-	Log logger
+	Logger logger
 }
 
 // Option is a function that configures the server.
@@ -22,7 +23,10 @@ type Option func(*server)
 
 // New returns a new server.
 func New(options ...Option) *server {
-	s := &server{}
+	s := &server{
+		stopCh: make(chan os.Signal),
+		errCh:  make(chan error),
+	}
 	for _, option := range options {
 		option(s)
 	}
@@ -36,44 +40,45 @@ func New(options ...Option) *server {
 
 // Start the server.
 func (s server) Start() error {
-	errCh := make(chan error, 1)
 	go func() {
 		// Add server startup code here.
-		// Send errors to errCh.
+		// Send errors to s.errCh.
 	}()
 
-	select {
-	case err := <-errCh:
-		s.log.Error("Failed to start server.")
-		return err
-	case <-time.After(10 * time.Millisecond):
-		// Code for when server start is finsihed.
-	}
+	go func() {
+		s.stop()
+	}()
 
-	sig, err := s.shutdown()
-	if err != nil {
-		s.log.Error("Failed to shutdown server gracefully.")
-		return err
+	s.log.Info("Server started.")
+	for {
+		select {
+		case err := <-s.errCh:
+			close(s.errCh)
+			return err
+		case sig := <-s.stopCh:
+			s.log.Info("Server stopped.", "reason", sig.String())
+			close(s.stopCh)
+			return nil
+		}
 	}
-	s.log.Info("Server shutdown.", "reason", sig.String())
-	return nil
 }
 
-// shutdown the server.
-func (s server) shutdown() (os.Signal, error) {
+// stop the server.
+func (s server) stop() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-stop
 
 	// Add server shutdown logic here.
 
-	return sig, nil
+	s.stopCh <- sig
 }
 
 // WithOptions configures the server with the given Options.
 func WithOptions(options Options) Option {
 	return func(s *server) {
-		// Setup on all options from the option struct here.
-		s.log = options.Log
+		if options.Logger != nil {
+			s.log = options.Logger
+		}
 	}
 }
