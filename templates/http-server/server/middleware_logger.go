@@ -57,8 +57,8 @@ func resolveIP(r *http.Request) string {
 	} else {
 		addr = r.RemoteAddr
 	}
-	ip, _, err := net.SplitHostPort(addr)
-	if err != nil {
+	ip := strings.Split(addr, ":")[0]
+	if net.ParseIP(ip) == nil {
 		return "N/A"
 	}
 	return ip
