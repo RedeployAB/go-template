@@ -36,5 +36,9 @@ to a GitHub repository with the user/organization name `YourUser` and the projec
 gonew github.com/RedeployAB/go-template/templates/http-server github.com/YourUser/myproject
 ```
 
+**Note**: The directory and files will be created in the current working directory.
+Given the example path `development/go`, running the `gonew` command will create
+the new `myproject` into `development/go/myproject`.
+
 This will download the module, it's assets and rewrite the module name and import paths
 to match the new module name (project).
