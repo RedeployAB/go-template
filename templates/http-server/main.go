@@ -5,7 +5,7 @@ import (
 )
 
 func main() {
-	log := server.NewDefaultLogger()
+	log := server.NewLogger()
 
 	srv := server.New(server.WithOptions(server.Options{
 		Logger: log,

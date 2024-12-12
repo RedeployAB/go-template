@@ -27,21 +27,21 @@ func TestNew(t *testing.T) {
 			want: &server{
 				httpServer: &http.Server{
 					Addr:         defaultHost + ":" + defaultPort,
-					Handler:      &http.ServeMux{},
+					Handler:      &router{ServeMux: http.NewServeMux()},
 					ReadTimeout:  defaultReadTimeout,
 					WriteTimeout: defaultWriteTimeout,
 					IdleTimeout:  defaultIdleTimeout,
 				},
-				router: &http.ServeMux{},
-				log:    NewDefaultLogger(),
+				router: &router{ServeMux: http.NewServeMux()},
+				log:    NewLogger(),
 			},
 		},
 		{
 			name: "with options",
 			input: []Option{
 				WithOptions(Options{
-					Router:       http.NewServeMux(),
-					Logger:       NewDefaultLogger(),
+					Router:       NewRouter(),
+					Logger:       NewLogger(),
 					Host:         "localhost",
 					Port:         8081,
 					ReadTimeout:  10 * time.Second,
@@ -52,13 +52,13 @@ func TestNew(t *testing.T) {
 			want: &server{
 				httpServer: &http.Server{
 					Addr:         "localhost:8081",
-					Handler:      &http.ServeMux{},
+					Handler:      &router{ServeMux: http.NewServeMux()},
 					ReadTimeout:  10 * time.Second,
 					WriteTimeout: 10 * time.Second,
 					IdleTimeout:  15 * time.Second,
 				},
-				router: &http.ServeMux{},
-				log:    NewDefaultLogger(),
+				router: &router{ServeMux: http.NewServeMux()},
+				log:    NewLogger(),
 			},
 		},
 	}

@@ -11,7 +11,7 @@ type logger interface {
 	Error(msg string, args ...any)
 }
 
-// NewDefaultLogger creates a new default logger.
-func NewDefaultLogger() logger {
+// NewLogger creates a new slog with a JSON handler.
+func NewLogger() logger {
 	return slog.New(slog.NewJSONHandler(os.Stderr, nil))
 }

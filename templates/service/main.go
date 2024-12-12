@@ -5,7 +5,7 @@ import (
 )
 
 func main() {
-	log := service.NewDefaultLogger()
+	log := service.NewLogger()
 
 	svc := service.New(service.WithOptions(service.Options{
 		Logger: log,

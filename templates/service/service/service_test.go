@@ -21,18 +21,18 @@ func TestNew(t *testing.T) {
 			name:  "default",
 			input: []Option{},
 			want: &service{
-				log: NewDefaultLogger(),
+				log: NewLogger(),
 			},
 		},
 		{
 			name: "with options",
 			input: []Option{
 				WithOptions(Options{
-					Logger: NewDefaultLogger(),
+					Logger: NewLogger(),
 				}),
 			},
 			want: &service{
-				log: NewDefaultLogger(),
+				log: NewLogger(),
 			},
 		},
 	}
