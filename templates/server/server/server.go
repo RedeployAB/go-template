@@ -32,7 +32,7 @@ func New(options ...Option) *server {
 	}
 
 	if s.log == nil {
-		s.log = NewDefaultLogger()
+		s.log = NewLogger()
 	}
 
 	return s

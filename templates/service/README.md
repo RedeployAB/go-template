@@ -27,9 +27,9 @@ The service implementation, startup and shutdown logic must be implemented.
 
 ### Logging
 
-The `service` makes use of the interface `logger` which has the methods `Info(msg string, keysAndValues ...any)` and `Error(err error, msg string, keysAndValues ...any)`. This interface adheres to logging API provided by [`logr`](https://github.com/go-logr/logr). Various implementations can be found in its README.
+The `service` makes use of the interface `logger` which has the methods `Info(msg string, args ...any)` and `Error(msg string, args ...any)`. This interface matches the method on `slog` from module [`log/slog`](https://pkg.go.dev/log/slog) in the standard library.
 
-A basic implementation is provided with the service through the `defaultLogger` which can be created by calling `NewDefaultLogger()`. It is recommended to make use of a more advanced logger implementation.
+A basic implementation is provided with the service through the function `NewLogger()`. It is recommended to make use of a more advanced logger implementation.
 
 ## Scripts
 

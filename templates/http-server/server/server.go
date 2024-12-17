@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"net/http"
 	"os"
 	"os/signal"
@@ -22,15 +23,28 @@ const (
 // server holds an http.Server, a router and it's configured options.
 type server struct {
 	httpServer *http.Server
-	router     *http.ServeMux
+	router     *router
+	tls        TLSConfig
 	log        logger
 	stopCh     chan os.Signal
 	errCh      chan error
 }
 
+// TLSConfig holds the configuration for the server's TLS settings.
+type TLSConfig struct {
+	Certificate string
+	Key         string
+}
+
+// isEmpty returns true if the TLSConfig is empty.
+func (c TLSConfig) isEmpty() bool {
+	return len(c.Certificate) == 0 && len(c.Key) == 0
+}
+
 // Options holds the configuration for the server.
 type Options struct {
-	Router       *http.ServeMux
+	Router       *router
+	TLSConfig    TLSConfig
 	Logger       logger
 	Host         string
 	Port         int
@@ -58,14 +72,16 @@ func New(options ...Option) *server {
 	}
 
 	if s.router == nil {
-		s.router = http.NewServeMux()
-		s.httpServer.Handler = s.router
+		s.router = NewRouter()
 	}
 	if s.log == nil {
-		s.log = NewDefaultLogger()
+		s.log = NewLogger()
 	}
 	if len(s.httpServer.Addr) == 0 {
 		s.httpServer.Addr = defaultHost + ":" + defaultPort
+	}
+	if s.httpServer.Handler == nil {
+		s.httpServer.Handler = s.router
 	}
 
 	return s
@@ -76,7 +92,7 @@ func (s server) Start() error {
 	s.routes()
 
 	go func() {
-		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := s.listenAndServe(); err != nil && err != http.ErrServerClosed {
 			s.errCh <- err
 		}
 	}()
@@ -97,6 +113,16 @@ func (s server) Start() error {
 			return nil
 		}
 	}
+}
+
+// listenAndServe wraps around http.Server ListenAndServe and
+// ListenAndServeTLS depending on TLS configuration.
+func (s *server) listenAndServe() error {
+	if !s.tls.isEmpty() {
+		s.httpServer.TLSConfig = newTLSConfig()
+		return s.httpServer.ListenAndServeTLS(s.tls.Certificate, s.tls.Key)
+	}
+	return s.httpServer.ListenAndServe()
 }
 
 // stop the server.
@@ -123,6 +149,9 @@ func WithOptions(options Options) Option {
 			s.router = options.Router
 			s.httpServer.Handler = s.router
 		}
+		if !options.TLSConfig.isEmpty() {
+			s.tls = options.TLSConfig
+		}
 		if options.Logger != nil {
 			s.log = options.Logger
 		}
@@ -138,5 +167,22 @@ func WithOptions(options Options) Option {
 		if options.IdleTimeout > 0 {
 			s.httpServer.IdleTimeout = options.IdleTimeout
 		}
+	}
+}
+
+// newTLSConfig returns a new tls.Config.
+func newTLSConfig() *tls.Config {
+	return &tls.Config{
+		MinVersion:               tls.VersionTLS13,
+		PreferServerCipherSuites: true,
+		CurvePreferences: []tls.CurveID{
+			tls.CurveP256,
+		},
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		},
 	}
 }
